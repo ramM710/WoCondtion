@@ -1,0 +1,132 @@
+/*
+ * To change this license header, choose License Headers in Project Properties.
+ * To change this template file, choose Tools | Templates
+ * and open the template in the editor.
+ */
+package WoCondtion;
+
+import YardSegment.DbConnection;
+import java.util.HashMap;
+import java.util.List;
+
+/**
+ *
+ * @author empc007
+ */
+public class PmValidation {
+
+    static double matLen = 304.8;
+    static double matWidth = 4.3;
+    static double matWt = 90718.5;
+
+    public void pmValid() throws Exception {
+
+        DbConnection db = new DbConnection();
+        List<PlannedMovement> pm = db.getPM();
+        List<Material> mat = db.getMaterialDetails();
+
+        HashMap<Integer, PlannedMovement> pmdetail = new HashMap<>();
+        PlannedMovement pmt = null;
+
+        for (int w = 0; w < pm.size(); w++) {
+            pmt = pm.get(w);
+            pmdetail.put(pmt.getPmId(), pmt);
+        }
+        System.out.println(pmdetail.size());
+
+        PlannedMovement pmts = null, nxtPmts = null;
+        for (int p = 0; p < pmdetail.size(); p++) {
+
+            pmts = pmdetail.get(pmt.getPmId());
+
+            for (int q = 1; q < pmdetail.size(); q++) {
+                nxtPmts = pmdetail.get(pmt.getPmId());
+
+                int pmgId = pmts.getPmgId();
+                int nxtPmgId = nxtPmts.pmgId;
+
+                if (pmgId == nxtPmgId) {
+                    String pmMatString = pmts.getMatName();
+                    String[] pmMat = pmMatString.split(",");
+
+//   --------------------------
+                    HashMap<String, Material> pmData = new HashMap<>();
+                    for (int z = 0; z < mat.size(); z++) {
+                        Material matDetail = mat.get(z);
+                        pmData.put(matDetail.getMatName(), matDetail);
+                    }
+
+                    for (int j = 0; j < mat.size(); j++) {
+                        Material matDetail = mat.get(j);
+
+                        if (pmMatString.contains(matDetail.getMatName())) {
+
+                            for (int t = 0; t < pmMat.length; t++) {
+                                Material mats, nextMat, oldMat = null;
+
+                                try {
+                                    mats = pmData.get(pmMat[t]);
+                                    nextMat = pmData.get(pmMat[t + 1]);
+
+                                    // Long length
+                                    if ((mats.getMatLen() > matLen) && (nextMat.getMatLen() > matLen)) {
+                                        double matWidthDiff = Math.abs(mats.getMatWidth() - nextMat.getMatWidth());
+                                        double matWtDiff = mats.getMatWt() + nextMat.getMatWt();
+
+                                        if ((matWidth > matWidthDiff && matWt > matWtDiff)) {
+                                            System.out.println("Long length material");
+                                            System.out.println(mats.getMatName() + " validates all the condition when compared to " + nextMat.getMatName());
+                                        }
+                                    } // Short length 
+                                    else if ((mats.getMatLen() < matLen) && (nextMat.getMatLen() < matLen)) {
+                                        double matWidthDiff = Math.abs(mats.getMatWidth() - nextMat.getMatWidth());
+                                        double matWtDiff = mats.getMatWt() + nextMat.getMatWt();
+
+                                        if ((matWidth > matWidthDiff && matWt > matWtDiff)) {
+                                            System.out.println("Short length material");
+                                            System.out.println(mats.getMatName() + " validates all the condition when compared to " + nextMat.getMatName());
+                                        }
+                                    }
+                                } catch (Exception e) {
+                                    mats = pmData.get(pmMat[t]);
+                                    nextMat = pmData.get(pmMat[0]);
+
+                                    // Long length
+                                    if ((mats.getMatLen() > matLen) && (nextMat.getMatLen() > matLen)) {
+                                        double matWidthDiff = Math.abs(mats.getMatWidth() - nextMat.getMatWidth());
+                                        double matWtDiff = mats.getMatWt() + nextMat.getMatWt();
+
+                                        if ((matWidth > matWidthDiff && matWt > matWtDiff)) {
+                                            System.out.println(mats.getMatName() + " validates all the condition when compared to " + nextMat.getMatName());
+                                        }
+                                    } else if ((mats.getMatLen() < matLen) && (nextMat.getMatLen() < matLen)) {
+                                        double matWidthDiff = Math.abs(mats.getMatWidth() - nextMat.getMatWidth());
+                                        double matWtDiff = mats.getMatWt() + nextMat.getMatWt();
+
+                                        if ((matWidth > matWidthDiff && matWt > matWtDiff)) {
+                                            System.out.println("Short length material");
+                                            System.out.println(mats.getMatName() + " validates all the condition when compared to " + nextMat.getMatName());
+                                        }
+                                    }
+                                }
+                            }
+                            break;
+                        }
+
+                    }
+
+                    System.out.println("pmg id :" + pmgId + " satisfied all the validation");
+                }
+
+            }
+        }
+
+    }
+
+    public static void main(String[] args) throws Exception {
+
+        PmValidation pm = new PmValidation();
+        pm.pmValid();
+    }
+
+}
