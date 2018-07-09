@@ -1,0 +1,188 @@
+/*
+ * To change this license header, choose License Headers in Project Properties.
+ * To change this template file, choose Tools | Templates
+ * and open the template in the editor.
+ */
+package WoCondtion;
+
+import java.util.HashMap;
+import YardSegment.DbConnection;
+import java.util.List;
+
+/**
+ *
+ * @author empc007
+ */
+public class woCondition {
+
+    static double matLen = 304.8;
+    static double matWidth = 4.3;
+    static double matWt = 90718.5;
+    String destBin = null;
+
+    public void woConditions() throws Exception {
+
+        DbConnection db = new DbConnection();
+//        List<PlannedMovement> pm = db.getPM();
+        List<PlannedMovementGroup> pmg = db.getPMG();
+        List<Material> mat = db.getMaterialDetails();
+
+        for (int i = 0; i < pmg.size(); i++) {
+
+            PlannedMovementGroup pmgDetails = pmg.get(i);
+            int pmgId = pmgDetails.pmgId;
+            String matName = pmgDetails.matName;
+            destBin = pmgDetails.destBinName;
+
+            List<DestinationBin> destBinDetails = db.getDestinationBin(destBin);
+
+            String[] pmgMat = matName.split(",");
+
+            HashMap<String, DestinationBin> destBinMatsDestail = new HashMap<>();
+            HashMap<String, BinRestriction> binRest = new HashMap<>();
+
+            //<editor-fold defaultstate="collapsed" desc="destination mat validation">
+            if (!(destBinDetails.isEmpty())) {
+                for (int m = 0; m < destBinDetails.size(); m++) {
+                    DestinationBin destBinMatDetails = destBinDetails.get(m);
+                    destBinMatsDestail.put(destBinMatDetails.getMatName(), destBinMatDetails);
+
+                    DestinationBin destMat = destBinMatsDestail.get(destBinMatDetails.getMatName());
+                    m += 1;
+                    DestinationBin destNextMat = destBinMatsDestail.get(destBinMatDetails.getMatName());
+
+                    // destination exist mat Long length
+                    if ((destMat.getMatLen() > matLen) && (destNextMat.getMatLen() > matLen)) {
+                        double matWidthDiff = Math.abs(destMat.getMatWidth() - destNextMat.getMatWidth());
+                        double matWtDiff = destMat.getMatWt() + destNextMat.getMatWt();
+
+                        if ((matWidth > matWidthDiff && matWt > matWtDiff)) {
+                            System.out.println("Long length material");
+                            System.out.println(destMat.getMatName() + " validates all the condition when compared to " + destNextMat.getMatName());
+                        }
+                    } // destination exist mat Short length 
+                    else if ((destMat.getMatLen() < matLen) && (destNextMat.getMatLen() < matLen)) {
+                        double matWidthDiff = Math.abs(destMat.getMatWidth() - destNextMat.getMatWidth());
+                        double matWtDiff = destMat.getMatWt() + destNextMat.getMatWt();
+
+                        if ((matWidth > matWidthDiff && matWt > matWtDiff)) {
+                            System.out.println("Short length material");
+                            System.out.println(destMat.getMatName() + " validates all the condition when compared to " + destNextMat.getMatName());
+                        }
+                    } else {
+                        System.out.println("Validation failed for destination.");
+                    }
+                }
+                System.out.println("Destination bin validation is succesfull");
+            } else {
+                System.out.println("Destination bin " + destBin + " is empty so no need to perform destination bin validation an all,"
+                        + " now will check pmg validation");
+            }
+
+            BinRestriction binRestric = null;
+            for (int t = 0; t < binRest.size(); t++) {
+                binRestric = binRest.get(t);
+                binRest.put(binRestric.getBinName(), binRestric);
+            }
+
+            BinRestriction destBinRest = binRest.get(destBin);
+
+            // Bin layer validation.
+            if (destBinDetails.size() == destBinRest.getMaxLayer()) {
+                System.out.println("Material cannot be dropped on destination bin as bin restriction violation will happen.");
+                break;
+            }
+
+//</editor-fold>
+            //<editor-fold defaultstate="collapsed" desc="PMG validation">
+            HashMap<String, Material> pmgData = new HashMap<>();
+
+            for (int z = 0; z < mat.size(); z++) {
+                Material matDetail = mat.get(z);
+                pmgData.put(matDetail.getMatName(), matDetail);
+            }
+
+            for (int j = 0; j < mat.size(); j++) {
+                Material matDetail = mat.get(j);
+
+                if (matName.contains(matDetail.getMatName())) {
+
+                    for (int t = 0; t < pmgMat.length; t++) {
+                        Material mats, nextMat, oldMat = null;
+
+                        try {
+                            mats = pmgData.get(pmgMat[t]);
+                            nextMat = pmgData.get(pmgMat[t + 1]);
+
+                            // Long length
+                            if ((mats.getMatLen() > matLen) && (nextMat.getMatLen() > matLen)) {
+                                double matWidthDiff = Math.abs(mats.getMatWidth() - nextMat.getMatWidth());
+                                double matWtDiff = mats.getMatWt() + nextMat.getMatWt();
+
+                                if ((matWidth > matWidthDiff && matWt > matWtDiff)) {
+                                    System.out.println("Long length material");
+                                    System.out.println(mats.getMatName() + " validates all the condition when compared to " + nextMat.getMatName());
+                                }
+                            } // Short length 
+                            else if ((mats.getMatLen() < matLen) && (nextMat.getMatLen() < matLen)) {
+                                double matWidthDiff = Math.abs(mats.getMatWidth() - nextMat.getMatWidth());
+                                double matWtDiff = mats.getMatWt() + nextMat.getMatWt();
+
+                                if ((matWidth > matWidthDiff && matWt > matWtDiff)) {
+                                    System.out.println("Short length material");
+                                    System.out.println(mats.getMatName() + " validates all the condition when compared to " + nextMat.getMatName());
+                                }
+                            }
+                            if (pmgMat.length == 2) {
+                                break;
+                            }
+
+                        } catch (Exception e) {
+                            mats = pmgData.get(pmgMat[t]);
+                            nextMat = pmgData.get(pmgMat[0]);
+
+                            // Long length
+                            if ((mats.getMatLen() > matLen) && (nextMat.getMatLen() > matLen)) {
+                                double matWidthDiff = Math.abs(mats.getMatWidth() - nextMat.getMatWidth());
+                                double matWtDiff = mats.getMatWt() + nextMat.getMatWt();
+
+                                if ((matWidth > matWidthDiff && matWt > matWtDiff)) {
+                                    System.out.println(mats.getMatName() + " validates all the condition when compared to " + nextMat.getMatName());
+                                }
+                            } else if ((mats.getMatLen() < matLen) && (nextMat.getMatLen() < matLen)) {
+                                double matWidthDiff = Math.abs(mats.getMatWidth() - nextMat.getMatWidth());
+                                double matWtDiff = mats.getMatWt() + nextMat.getMatWt();
+
+                                if ((matWidth > matWidthDiff && matWt > matWtDiff)) {
+                                    System.out.println("Short length material");
+                                    System.out.println(mats.getMatName() + " validates all the condition when compared to " + nextMat.getMatName());
+                                }
+                            }
+                            if (pmgMat.length == 2) {
+                                break;
+                            }
+                        }
+                    }
+                    break;
+                }
+
+            }
+
+            System.out.println("pmg id :" + pmgId + " satisfied all the validation");
+        }
+
+//</editor-fold>
+    
+    
+    
+    
+    }
+
+    public static void main(String args[]) throws Exception {
+
+        woCondition wc = new woCondition();
+
+        wc.woConditions();
+    }
+
+}
